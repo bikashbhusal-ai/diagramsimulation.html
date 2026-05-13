@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Venn Diagram – Set Theory Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════
+   ROOT & RESET
+═══════════════════════════════════════════════ */
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface2: #1e2530;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --text: #e6edf3;
+  --text2: #8b949e;
+  --blue: #3b82f6;
+  --blue-light: #60a5fa;
+  --blue-glow: rgba(59,130,246,0.25);
+  --red: #ef4444;
+  --red-light: #f87171;
+  --red-glow: rgba(239,68,68,0.25);
+  --green: #22c55e;
+  --green-light: #4ade80;
+  --green-glow: rgba(34,197,94,0.25);
+  --yellow: #f59e0b;
+  --purple: #8b5cf6;
+  --radius: 16px;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Background grid */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════ */
+.app {
+  position: relative; z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 20px 60px;
+}
+
+/* ═══════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════ */
+.header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.header h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 50%, #34d399 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 6px;
+}
+.header p {
+  color: var(--text2);
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+/* ═══════════════════════════════════════════════
+   MODE TOGGLE
+═══════════════════════════════════════════════ */
+.mode-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 28px;
+}
+.mode-btn {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 10px 28px;
+  border-radius: 50px;
+  border: 1.5px solid var(--border2);
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  letter-spacing: 0.5px;
+}
+.mode-btn:hover { border-color: var(--blue); color: var(--blue-light); }
+.mode-btn.active {
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(59,130,246,0.35);
+}
+
+/* ═══════════════════════════════════════════════
+   MAIN TWO-COLUMN LAYOUT
+═══════════════════════════════════════════════ */
+.main-layout {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  align-items: flex-start;
+}
+
+/* LEFT: Sets panel */
+.sets-panel {
+  flex: 0 0 250px;
+  width: 250px;
+}
+
+/* RIGHT: Venn panel */
+.venn-panel {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   CARD
+═══════════════════════════════════════════════ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 0;
+}
+.card-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text2);
+  margin-bottom: 16px;
+}
+
+/* ═══════════════════════════════════════════════
+   INPUTS — single column vertical in left panel
+═══════════════════════════════════════════════ */
+.inputs-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.input-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+.lbl-u { color: var(--text2); }
+.lbl-a { color: var(--blue-light); }
+.lbl-b { color: var(--red-light); }
+.lbl-c { color: var(--green-light); }
+
+.input-group input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-group input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-glow);
+}
+.input-group input.input-a:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+.input-group input.input-b:focus { border-color: var(--red); box-shadow: 0 0 0 3px var(--red-glow); }
+.input-group input.input-c:focus { border-color: var(--green); box-shadow: 0 0 0 3px var(--green-glow); }
+
+/* U input — rectangle style, slightly compact */
+.u-group input.input-u {
+  border-radius: 6px;
+  border-color: rgba(255,255,255,0.22);
+  font-size: 0.85rem;
+  padding: 8px 12px;
+}
+.u-group input.input-u:focus {
+  border-color: rgba(255,255,255,0.5);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.06);
+}
+
+.error-msg {
+  color: var(--red-light);
+  font-size: 0.75rem;
+  margin-top: 5px;
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════ */
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.btn {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 10px 22px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  letter-spacing: 0.4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn:hover { transform: translateY(-2px); }
+.btn:active { transform: scale(0.96); }
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(59,130,246,0.3);
+}
+.btn-primary:hover { box-shadow: 0 6px 24px rgba(59,130,246,0.45); }
+
+.btn-success {
+  background: linear-gradient(135deg, #059669, #22c55e);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(34,197,94,0.25);
+}
+.btn-warning {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(245,158,11,0.25);
+}
+.btn-danger {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(239,68,68,0.25);
+}
+.btn-ghost {
+  background: var(--surface2);
+  border: 1.5px solid var(--border2);
+  color: var(--text2);
+}
+.btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
+
+/* ═══════════════════════════════════════════════
+   VENN DIAGRAM CONTAINER
+═══════════════════════════════════════════════ */
+.venn-wrapper {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  position: relative;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#vennSvg {
+  width: 100%;
+  max-width: 680px;
+  height: 370px;
+  overflow: visible;
+}
+
+/* SVG circles */
+.venn-circle {
+  fill-opacity: 0.12;
+  stroke-width: 2.5;
+  transition: fill-opacity 0.2s;
+}
+.circle-a { fill: var(--blue); stroke: var(--blue-light); }
+.circle-b { fill: var(--red); stroke: var(--red-light); }
+.circle-c { fill: var(--green); stroke: var(--green-light); }
+.venn-circle:hover { fill-opacity: 0.18; }
+
+.venn-label {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 20px;
+  pointer-events: none;
+  user-select: none;
+}
+.label-a { fill: var(--blue-light); }
+.label-b { fill: var(--red-light); }
+.label-c { fill: var(--green-light); }
+
+/* Drop zones (invisible, on top of SVG) */
+.drop-zones {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.drop-zone {
+  position: absolute;
+  pointer-events: all;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+.drop-zone.drag-over {
+  background: rgba(255,255,255,0.06) !important;
+  outline: 2px dashed rgba(255,255,255,0.3);
+  outline-offset: -4px;
+}
+
+/* ═══════════════════════════════════════════════
+   TOKENS TRAY
+═══════════════════════════════════════════════ */
+.tray-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 24px;
+  margin-bottom: 20px;
+}
+
+/* Tray header: title + buttons side by side */
+.tray-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.tray-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+
+#tokenTray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 52px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--border2);
+  transition: border-color 0.2s, background 0.2s;
+}
+#tokenTray.drag-over {
+  border-color: rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.03);
+}
+#tokenTray .tray-empty {
+  color: var(--text2);
+  font-size: 0.85rem;
+  align-self: center;
+  margin: auto;
+  font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════
+   NUMBER TOKENS — colorful
+═══════════════════════════════════════════════ */
+.token {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 2px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: grab;
+  user-select: none;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  position: relative;
+  flex-shrink: 0;
+  color: #fff;
+}
+.token:hover {
+  transform: scale(1.15) translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  z-index: 10;
+}
+.token.dragging {
+  cursor: grabbing;
+  transform: scale(1.2);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.5);
+  opacity: 0.85;
+  z-index: 9999;
+}
+.token.correct {
+  border-color: var(--green) !important;
+  box-shadow: 0 0 14px var(--green-glow);
+  animation: correctPulse 0.5s ease;
+}
+.token.incorrect {
+  border-color: var(--red) !important;
+  box-shadow: 0 0 14px var(--red-glow);
+  animation: shakeFX 0.4s ease;
+}
+.token .check-icon {
+  position: absolute;
+  top: -5px; right: -5px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+}
+.token .check-icon.ok { background: var(--green); color: #fff; }
+.token .check-icon.no { background: var(--red); color: #fff; }
+
+@keyframes correctPulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@keyframes shakeFX {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+/* ═══════════════════════════════════════════════
+   SCORE PANEL
+═══════════════════════════════════════════════ */
+#scorePanel {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+.score-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.score-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border-radius: 50px;
+  padding: 8px 18px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.score-badge .dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+.dot-green { background: var(--green); }
+.dot-red { background: var(--red); }
+.dot-blue { background: var(--blue); }
+
+.score-bar-wrap {
+  background: var(--surface2);
+  border-radius: 20px;
+  height: 8px;
+  overflow: hidden;
+  flex: 1;
+  min-width: 120px;
+}
+.score-bar {
+  height: 100%;
+  border-radius: 20px;
+  background: linear-gradient(90deg, var(--blue), var(--green));
+  transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* ═══════════════════════════════════════════════
+   SET INFO DISPLAY
+═══════════════════════════════════════════════ */
+#setInfo {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 24px;
+  margin-bottom: 20px;
+}
+.set-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.set-chip {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid var(--border2);
+}
+.chip-a { border-color: rgba(59,130,246,0.4); color: var(--blue-light); }
+.chip-b { border-color: rgba(239,68,68,0.4); color: var(--red-light); }
+.chip-c { border-color: rgba(34,197,94,0.4); color: var(--green-light); }
+.chip-u { border-color: var(--border2); color: var(--text2); }
+
+/* ═══════════════════════════════════════════════
+   ACTION BUTTONS SECTION
+═══════════════════════════════════════════════ */
+.actions-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media (max-width: 680px) {
+  .app { padding: 20px 12px 40px; }
+  .main-layout { flex-direction: column; }
+  .sets-panel { flex: none; width: 100%; }
+  #vennSvg { height: 300px; }
+  .venn-wrapper { min-height: 330px; padding: 10px; }
+  .token { width: 38px; height: 38px; font-size: 0.85rem; }
+  .btn { padding: 9px 16px; font-size: 0.8rem; }
+}
+
+/* ═══════════════════════════════════════════════
+   PLACED TOKEN (absolutely positioned in venn)
+═══════════════════════════════════════════════ */
+.placed-token {
+  position: absolute;
+  pointer-events: all;
+  z-index: 20;
+  transform: translate(-50%, -50%);
+}
+
+/* Tooltip for region */
+.region-hint {
+  position: absolute;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 100;
+  display: none;
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1>Venn Diagram Simulator</h1>
+    <p>Practice Set Theory — drag numbers into the correct regions</p>
+  </div>
+
+  <!-- MODE TOGGLE -->
+  <div class="mode-toggle">
+    <button class="mode-btn active" id="btn2sets" onclick="setMode(2)">⬡ 2 Sets</button>
+    <button class="mode-btn" id="btn3sets" onclick="setMode(3)">⬡ 3 Sets</button>
+  </div>
+
+  <!-- MAIN TWO-COLUMN LAYOUT -->
+  <div class="main-layout">
+
+    <!-- LEFT: Define Your Sets -->
+    <div class="sets-panel">
+      <div class="card">
+        <div class="card-title">📐 Define Your Sets</div>
+        <div class="inputs-grid">
+          <!-- U — compact rectangle style -->
+          <div class="input-group u-group">
+            <label class="lbl-u">Universal Set U</label>
+            <input type="text" id="inputU" class="input-u" placeholder="e.g. 1,2,3,4,5,6,7,8">
+            <div class="error-msg" id="errU">Invalid input</div>
+          </div>
+          <div class="input-group">
+            <label class="lbl-a">Set A</label>
+            <input type="text" id="inputA" class="input-a" placeholder="e.g. 1,2,3,4">
+            <div class="error-msg" id="errA">Must be subset of U</div>
+          </div>
+          <div class="input-group">
+            <label class="lbl-b">Set B</label>
+            <input type="text" id="inputB" class="input-b" placeholder="e.g. 3,4,5,6">
+            <div class="error-msg" id="errB">Must be subset of U</div>
+          </div>
+          <div class="input-group" id="groupC" style="display:none">
+            <label class="lbl-c">Set C</label>
+            <input type="text" id="inputC" class="input-c" placeholder="e.g. 5,6,7,8">
+            <div class="error-msg" id="errC">Must be subset of U</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Venn Diagram -->
+    <div class="venn-panel">
+      <div class="venn-wrapper" id="vennWrapper">
+        <svg id="vennSvg" viewBox="0 0 680 380"></svg>
+        <div class="drop-zones" id="dropZones"></div>
+        <div class="region-hint" id="regionHint"></div>
+      </div>
+    </div>
+
+  </div><!-- end .main-layout -->
+
+  <!-- SET INFO -->
+  <div id="setInfo">
+    <div class="card-title">📊 Active Sets</div>
+    <div class="set-chips" id="setChips"></div>
+  </div>
+
+  <!-- TOKEN TRAY — with Draw & Place + Random Sets buttons in header -->
+  <div class="tray-card">
+    <div class="tray-header">
+      <div class="tray-title">🔢 Number Tokens — drag into the diagram</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="drawAndPlace()">▶ Draw &amp; Place</button>
+        <button class="btn btn-ghost" onclick="generateRandom()">🎲 Random Sets</button>
+      </div>
+    </div>
+    <div id="tokenTray"><span class="tray-empty">Click "Draw &amp; Place" to generate tokens</span></div>
+  </div>
+
+  <!-- SCORE PANEL -->
+  <div id="scorePanel">
+    <div class="card-title">📈 Result</div>
+    <div class="score-row">
+      <div class="score-badge"><span class="dot dot-green"></span><span id="scoreCorrect">0 Correct</span></div>
+      <div class="score-badge"><span class="dot dot-red"></span><span id="scoreWrong">0 Wrong</span></div>
+      <div class="score-badge"><span class="dot dot-blue"></span><span id="scorePct">0%</span></div>
+      <div class="score-bar-wrap"><div class="score-bar" id="scoreBar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <!-- ACTION BUTTONS -->
+  <div class="actions-card">
+    <div class="card-title">🎮 Actions</div>
+    <div class="btn-row">
+      <button class="btn btn-success" onclick="checkAnswers()">✓ Check It</button>
+      <button class="btn btn-warning" onclick="showCorrectAnswer()">💡 Show Answer</button>
+      <button class="btn btn-ghost" onclick="resetPlacements()">↺ Reset</button>
+      <button class="btn btn-danger" onclick="newTry()">🎲 New Try</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════ */
+let mode = 2;
+let setU = [], setA = [], setB = [], setC = [];
+let placements = {}; // tokenId → region
+let tokens = [];     // [{id, value, colorIdx}]
+let dragDisabled = false;
+
+/* ═══════════════════════════════════════════════
+   TOKEN COLOR PALETTE
+═══════════════════════════════════════════════ */
+const TOKEN_PALETTE = [
+  { bg: '#1d4ed8', border: '#60a5fa' },  // blue
+  { bg: '#b91c1c', border: '#f87171' },  // red
+  { bg: '#15803d', border: '#4ade80' },  // green
+  { bg: '#b45309', border: '#fbbf24' },  // amber
+  { bg: '#7c3aed', border: '#a78bfa' },  // purple
+  { bg: '#be185d', border: '#f472b6' },  // pink
+  { bg: '#0e7490', border: '#22d3ee' },  // cyan
+  { bg: '#c2410c', border: '#fb923c' },  // orange
+  { bg: '#3d6b10', border: '#a3e635' },  // lime
+  { bg: '#0f766e', border: '#2dd4bf' },  // teal
+  { bg: '#4338ca', border: '#818cf8' },  // indigo
+  { bg: '#9d174d', border: '#fb7185' },  // rose
+  { bg: '#92400e', border: '#fcd34d' },  // yellow
+  { bg: '#065f46', border: '#6ee7b7' },  // emerald
+  { bg: '#1e40af', border: '#93c5fd' },  // sky
+];
+
+/* ═══════════════════════════════════════════════
+   VENN GEOMETRY
+   We use % coordinates relative to the SVG viewBox (680×380)
+═══════════════════════════════════════════════ */
+const V = { w: 680, h: 380 };
+
+// 2-set centers
+const C2 = {
+  A: { cx: 255, cy: 195, r: 140 },
+  B: { cx: 425, cy: 195, r: 140 },
+};
+// 3-set centers
+const C3 = {
+  A: { cx: 230, cy: 155, r: 130 },
+  B: { cx: 450, cy: 155, r: 130 },
+  C: { cx: 340, cy: 290, r: 130 },
+};
+
+/* ═══════════════════════════════════════════════
+   MODE
+═══════════════════════════════════════════════ */
+function setMode(m) {
+  mode = m;
+  document.getElementById('btn2sets').classList.toggle('active', m === 2);
+  document.getElementById('btn3sets').classList.toggle('active', m === 3);
+  document.getElementById('groupC').style.display = m === 3 ? '' : 'none';
+  if (tokens.length) drawAndPlace();
+  else drawDiagram();
+}
+
+/* ═══════════════════════════════════════════════
+   PARSE & VALIDATE
+═══════════════════════════════════════════════ */
+function parseSet(str) {
+  if (!str.trim()) return [];
+  return [...new Set(str.replace(/\s/g,'').split(',').filter(s=>s!=='').map(Number))];
+}
+
+function validate() {
+  let ok = true;
+  const hide = id => document.getElementById(id).style.display='none';
+  const show = (id,msg) => { document.getElementById(id).style.display='block'; document.getElementById(id).textContent=msg; ok=false; };
+
+  hide('errU'); hide('errA'); hide('errB'); hide('errC');
+
+  const uStr = document.getElementById('inputU').value;
+  const aStr = document.getElementById('inputA').value;
+  const bStr = document.getElementById('inputB').value;
+  const cStr = document.getElementById('inputC').value;
+
+  setU = parseSet(uStr);
+  setA = parseSet(aStr);
+  setB = parseSet(bStr);
+  setC = mode===3 ? parseSet(cStr) : [];
+
+  if (setU.length===0) { show('errU','Universal set cannot be empty'); return false; }
+  if (setA.some(x=>!setU.includes(x))) { show('errA','Set A must be a subset of U'); ok=false; }
+  if (setB.some(x=>!setU.includes(x))) { show('errB','Set B must be a subset of U'); ok=false; }
+  if (mode===3 && setC.some(x=>!setU.includes(x))) { show('errC','Set C must be a subset of U'); ok=false; }
+
+  return ok;
+}
+
+/* ═══════════════════════════════════════════════
+   CORRECT REGION LOGIC
+═══════════════════════════════════════════════ */
+function correctRegion(val) {
+  const inA = setA.includes(val);
+  const inB = setB.includes(val);
+  const inC = mode===3 ? setC.includes(val) : false;
+  if (mode===2) {
+    if (inA && inB) return 'AB';
+    if (inA) return 'A';
+    if (inB) return 'B';
+    return 'outside';
+  } else {
+    if (inA && inB && inC) return 'ABC';
+    if (inA && inB) return 'AB';
+    if (inA && inC) return 'AC';
+    if (inB && inC) return 'BC';
+    if (inA) return 'A';
+    if (inB) return 'B';
+    if (inC) return 'C';
+    return 'outside';
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   DRAW DIAGRAM (SVG) — U drawn as rectangle inside SVG
+═══════════════════════════════════════════════ */
+function drawDiagram() {
+  const svg = document.getElementById('vennSvg');
+  svg.innerHTML = '';
+  if (mode===2) draw2Sets(svg);
+  else draw3Sets(svg);
+}
+
+function draw2Sets(svg) {
+  const {A,B} = C2;
+  svg.innerHTML = `
+    <rect x="8" y="8" width="664" height="364" rx="10"
+      fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <text x="22" y="34"
+      font-family="Syne,sans-serif" font-weight="800" font-size="17"
+      fill="rgba(255,255,255,0.45)" user-select="none">U</text>
+    <circle class="venn-circle circle-a" cx="${A.cx}" cy="${A.cy}" r="${A.r}"/>
+    <circle class="venn-circle circle-b" cx="${B.cx}" cy="${B.cy}" r="${B.r}"/>
+    <text class="venn-label label-a" x="${A.cx-A.r+28}" y="${A.cy-A.r+36}">A</text>
+    <text class="venn-label label-b" x="${B.cx+B.r-44}" y="${B.cy-B.r+36}">B</text>
+  `;
+}
+
+function draw3Sets(svg) {
+  const {A,B,C} = C3;
+  svg.innerHTML = `
+    <rect x="8" y="8" width="664" height="364" rx="10"
+      fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <text x="22" y="34"
+      font-family="Syne,sans-serif" font-weight="800" font-size="17"
+      fill="rgba(255,255,255,0.45)" user-select="none">U</text>
+    <circle class="venn-circle circle-a" cx="${A.cx}" cy="${A.cy}" r="${A.r}"/>
+    <circle class="venn-circle circle-b" cx="${B.cx}" cy="${B.cy}" r="${B.r}"/>
+    <circle class="venn-circle circle-c" cx="${C.cx}" cy="${C.cy}" r="${C.r}"/>
+    <text class="venn-label label-a" x="${A.cx-A.r+22}" y="${A.cy-60}">A</text>
+    <text class="venn-label label-b" x="${B.cx+B.r-44}" y="${B.cy-60}">B</text>
+    <text class="venn-label label-c" x="${C.cx-10}" y="${C.cy+C.r-18}">C</text>
+  `;
+}
+
+/* ═══════════════════════════════════════════════
+   REGION CENTERS (for auto-placing)
+═══════════════════════════════════════════════ */
+function regionCenter(region) {
+  if (mode===2) {
+    const {A,B} = C2;
+    const map = {
+      'A':       { x: A.cx - 80, y: A.cy },
+      'B':       { x: B.cx + 80, y: B.cy },
+      'AB':      { x: (A.cx+B.cx)/2, y: 195 },
+      'outside': { x: 50, y: 50 },
+    };
+    return map[region] || map['outside'];
+  } else {
+    const {A,B,C} = C3;
+    const map = {
+      'A':   { x: A.cx - 70, y: A.cy - 40 },
+      'B':   { x: B.cx + 70, y: B.cy - 40 },
+      'C':   { x: C.cx,     y: C.cy + 70 },
+      'AB':  { x: (A.cx+B.cx)/2, y: A.cy - 40 },
+      'AC':  { x: (A.cx+C.cx)/2 - 30, y: (A.cy+C.cy)/2 + 20 },
+      'BC':  { x: (B.cx+C.cx)/2 + 30, y: (B.cy+C.cy)/2 + 20 },
+      'ABC': { x: (A.cx+B.cx+C.cx)/3, y: (A.cy+B.cy+C.cy)/3 },
+      'outside': { x: 30, y: 30 },
+    };
+    return map[region] || map['outside'];
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   HIT-TEST: which region does point (px,py) belong to?
+   px,py are relative to #vennWrapper
+═══════════════════════════════════════════════ */
+function hitRegion(px, py) {
+  const wrapper = document.getElementById('vennWrapper');
+  const svg = document.getElementById('vennSvg');
+  const svgRect = svg.getBoundingClientRect();
+  const wRect = wrapper.getBoundingClientRect();
+
+  const scaleX = V.w / svgRect.width;
+  const scaleY = V.h / svgRect.height;
+  const ox = svgRect.left - wRect.left;
+  const oy = svgRect.top - wRect.top;
+
+  const sx = (px - ox) * scaleX;
+  const sy = (py - oy) * scaleY;
+
+  function inCircle(c) {
+    return Math.hypot(sx - c.cx, sy - c.cy) <= c.r;
+  }
+
+  if (mode===2) {
+    const {A,B} = C2;
+    const inA = inCircle(A), inB = inCircle(B);
+    if (inA && inB) return 'AB';
+    if (inA) return 'A';
+    if (inB) return 'B';
+    return 'outside';
+  } else {
+    const {A,B,C} = C3;
+    const inA=inCircle(A), inB=inCircle(B), inC=inCircle(C);
+    if (inA && inB && inC) return 'ABC';
+    if (inA && inB) return 'AB';
+    if (inA && inC) return 'AC';
+    if (inB && inC) return 'BC';
+    if (inA) return 'A';
+    if (inB) return 'B';
+    if (inC) return 'C';
+    return 'outside';
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   DRAW AND PLACE
+═══════════════════════════════════════════════ */
+function drawAndPlace() {
+  if (!validate()) return;
+  dragDisabled = false;
+  placements = {};
+
+  drawDiagram();
+  buildTokens();
+  showSetInfo();
+  document.getElementById('scorePanel').style.display='none';
+  clearPlacedTokens();
+}
+
+function buildTokens() {
+  tokens = setU.map((v,i) => ({
+    id: 'tok_'+i,
+    value: v,
+    colorIdx: i % TOKEN_PALETTE.length
+  }));
+  renderTray();
+}
+
+function renderTray() {
+  const tray = document.getElementById('tokenTray');
+  tray.innerHTML = '';
+  const inTray = tokens.filter(t => !placements[t.id]);
+  if (inTray.length===0 && tokens.length>0) {
+    tray.innerHTML = '<span class="tray-empty">All tokens placed ✓</span>';
+    return;
+  }
+  if (tokens.length===0) {
+    tray.innerHTML = '<span class="tray-empty">Click "Draw &amp; Place" to generate tokens</span>';
+    return;
+  }
+  inTray.forEach(t => tray.appendChild(makeTokenEl(t)));
+
+  tray.ondragover = e => { e.preventDefault(); tray.classList.add('drag-over'); };
+  tray.ondragleave = () => tray.classList.remove('drag-over');
+  tray.ondrop = e => {
+    e.preventDefault();
+    tray.classList.remove('drag-over');
+    const id = e.dataTransfer.getData('tokenId');
+    returnToTray(id);
+  };
+}
+
+function makeTokenEl(tok, isPlaced=false) {
+  const el = document.createElement('div');
+  el.className = 'token' + (isPlaced?' placed-token':'');
+  el.id = 'el_'+tok.id;
+  el.textContent = tok.value;
+  el.draggable = true;
+  el.dataset.tokId = tok.id;
+
+  // Apply color from palette
+  if (tok.colorIdx !== undefined) {
+    const c = TOKEN_PALETTE[tok.colorIdx];
+    el.style.background = c.bg;
+    el.style.borderColor = c.border;
+    el.style.boxShadow = `0 3px 10px ${c.bg}88`;
+  }
+
+  el.addEventListener('dragstart', e => {
+    if (dragDisabled) { e.preventDefault(); return; }
+    el.classList.add('dragging');
+    e.dataTransfer.setData('tokenId', tok.id);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+
+  // Touch support
+  makeTouchDraggable(el, tok.id);
+
+  return el;
+}
+
+/* ═══════════════════════════════════════════════
+   PLACED TOKEN MANAGEMENT
+═══════════════════════════════════════════════ */
+function clearPlacedTokens() {
+  document.querySelectorAll('.placed-token').forEach(e=>e.remove());
+}
+
+function placeToken(tokId, px, py) {
+  const tok = tokens.find(t=>t.id===tokId);
+  if (!tok) return;
+
+  const existing = document.getElementById('el_'+tokId);
+  if (existing) existing.remove();
+
+  placements[tokId] = hitRegion(px, py);
+
+  const el = makeTokenEl(tok, true);
+  el.style.left = px+'px';
+  el.style.top  = py+'px';
+  const icons = el.querySelectorAll('.check-icon');
+  icons.forEach(i=>i.remove());
+  el.classList.remove('correct','incorrect');
+
+  document.getElementById('vennWrapper').appendChild(el);
+  renderTray();
+}
+
+function returnToTray(tokId) {
+  const existing = document.getElementById('el_'+tokId);
+  if (existing && existing.classList.contains('placed-token')) existing.remove();
+  delete placements[tokId];
+  renderTray();
+}
+
+/* ═══════════════════════════════════════════════
+   DRAG & DROP on VENN WRAPPER
+═══════════════════════════════════════════════ */
+(function setupDrop() {
+  const wrapper = document.getElementById('vennWrapper');
+  wrapper.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect='move'; });
+  wrapper.addEventListener('drop', e => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('tokenId');
+    const rect = wrapper.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const py = e.clientY - rect.top;
+    placeToken(id, px, py);
+  });
+})();
+
+/* ═══════════════════════════════════════════════
+   TOUCH DRAG SUPPORT
+═══════════════════════════════════════════════ */
+function makeTouchDraggable(el, tokId) {
+  let clone = null;
+  el.addEventListener('touchstart', e => {
+    if (dragDisabled) return;
+    const t = e.touches[0];
+    clone = el.cloneNode(true);
+    clone.style.position = 'fixed';
+    clone.style.left = (t.clientX-22)+'px';
+    clone.style.top  = (t.clientY-22)+'px';
+    clone.style.opacity = '0.85';
+    clone.style.zIndex = '9999';
+    clone.style.pointerEvents = 'none';
+    clone.style.transform = 'scale(1.2)';
+    document.body.appendChild(clone);
+    el.style.opacity = '0.3';
+  }, {passive:true});
+
+  el.addEventListener('touchmove', e => {
+    if (!clone) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    clone.style.left = (t.clientX-22)+'px';
+    clone.style.top  = (t.clientY-22)+'px';
+  }, {passive:false});
+
+  el.addEventListener('touchend', e => {
+    if (!clone) return;
+    const t = e.changedTouches[0];
+    clone.remove(); clone=null;
+    el.style.opacity = '';
+
+    const wrapper = document.getElementById('vennWrapper');
+    const rect = wrapper.getBoundingClientRect();
+    const px = t.clientX - rect.left;
+    const py = t.clientY - rect.top;
+
+    const tray = document.getElementById('tokenTray');
+    const tr = tray.getBoundingClientRect();
+    if (t.clientX>=tr.left&&t.clientX<=tr.right&&t.clientY>=tr.top&&t.clientY<=tr.bottom) {
+      returnToTray(tokId);
+    } else if (px>=0&&py>=0&&px<=rect.width&&py<=rect.height) {
+      placeToken(tokId, px, py);
+    }
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   CHECK ANSWERS
+═══════════════════════════════════════════════ */
+function checkAnswers() {
+  if (tokens.length===0) return;
+  let correct=0, wrong=0;
+  tokens.forEach(tok => {
+    const placed = placements[tok.id];
+    const expected = correctRegion(tok.value);
+    const el = document.getElementById('el_'+tok.id);
+    if (el) {
+      el.querySelectorAll('.check-icon').forEach(i=>i.remove());
+      el.classList.remove('correct','incorrect');
+    }
+    if (!placed) return;
+    const isOk = placed === expected;
+    if (isOk) correct++; else wrong++;
+    if (el) {
+      el.classList.add(isOk?'correct':'incorrect');
+      const icon = document.createElement('span');
+      icon.className = 'check-icon '+(isOk?'ok':'no');
+      icon.textContent = isOk?'✓':'✕';
+      el.appendChild(icon);
+    }
+  });
+  const total = correct+wrong;
+  const pct = total ? Math.round(correct/total*100) : 0;
+  document.getElementById('scoreCorrect').textContent = correct+' Correct';
+  document.getElementById('scoreWrong').textContent   = wrong+' Wrong';
+  document.getElementById('scorePct').textContent     = pct+'%';
+  document.getElementById('scoreBar').style.width     = pct+'%';
+  document.getElementById('scorePanel').style.display = '';
+}
+
+/* ═══════════════════════════════════════════════
+   SHOW CORRECT ANSWER
+═══════════════════════════════════════════════ */
+function showCorrectAnswer() {
+  if (tokens.length===0) return;
+  dragDisabled = true;
+  clearPlacedTokens();
+  placements = {};
+
+  const regionCounts = {};
+  const wrapper = document.getElementById('vennWrapper');
+
+  tokens.forEach((tok, idx) => {
+    const region = correctRegion(tok.value);
+    placements[tok.id] = region;
+    regionCounts[region] = (regionCounts[region]||0);
+
+    const center = regionCenter(region);
+    const count = regionCounts[region];
+    const col = count % 4;
+    const row = Math.floor(count / 4);
+    const px = center.x + col*48 - 36;
+    const py = center.y + row*48 - 22;
+    regionCounts[region]++;
+
+    const el = makeTokenEl(tok, true);
+    el.style.left = px+'px';
+    el.style.top  = py+'px';
+    el.style.animationDelay = (idx*40)+'ms';
+    el.style.animation = 'correctPulse 0.4s ease '+(idx*40)+'ms both';
+    el.classList.add('correct');
+    wrapper.appendChild(el);
+  });
+
+  renderTray();
+  document.getElementById('scorePanel').style.display='none';
+}
+
+/* ═══════════════════════════════════════════════
+   RESET PLACEMENTS
+═══════════════════════════════════════════════ */
+function resetPlacements() {
+  dragDisabled = false;
+  clearPlacedTokens();
+  placements = {};
+  renderTray();
+  document.getElementById('scorePanel').style.display='none';
+  document.querySelectorAll('.token').forEach(el=>{
+    el.classList.remove('correct','incorrect');
+    el.querySelectorAll('.check-icon').forEach(i=>i.remove());
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   NEW TRY (random)
+═══════════════════════════════════════════════ */
+function newTry() {
+  generateRandom();
+  drawAndPlace();
+}
+
+function generateRandom() {
+  const size = mode===2 ? 8 : 12;
+  const allNums = Array.from({length:20},(_,i)=>i+1);
+  shuffle(allNums);
+  const u = allNums.slice(0,size).sort((a,b)=>a-b);
+  shuffle(u);
+  const aSize = 3+Math.floor(Math.random()*3);
+  const bSize = 3+Math.floor(Math.random()*3);
+  const a = u.slice(0,aSize).sort((a,b)=>a-b);
+  const b = u.slice(aSize-2, aSize-2+bSize).sort((a,b)=>a-b);
+  document.getElementById('inputU').value = u.join(',');
+  document.getElementById('inputA').value = a.join(',');
+  document.getElementById('inputB').value = b.join(',');
+  if (mode===3) {
+    const cSize = 3+Math.floor(Math.random()*2);
+    const c = u.slice(aSize, aSize+cSize).sort((a,b)=>a-b);
+    document.getElementById('inputC').value = c.join(',');
+  }
+}
+
+function shuffle(arr) {
+  for (let i=arr.length-1;i>0;i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+
+/* ═══════════════════════════════════════════════
+   SET INFO CHIPS
+═══════════════════════════════════════════════ */
+function showSetInfo() {
+  document.getElementById('setInfo').style.display='';
+  const chips = document.getElementById('setChips');
+  chips.innerHTML = '';
+  const add = (label, vals, cls) => {
+    const c=document.createElement('span');
+    c.className='set-chip '+cls;
+    c.textContent = label+' = { '+vals.join(', ')+' }';
+    chips.appendChild(c);
+  };
+  add('U', setU, 'chip-u');
+  add('A', setA, 'chip-a');
+  add('B', setB, 'chip-b');
+  if (mode===3) add('C', setC, 'chip-c');
+  const ab = setA.filter(x=>setB.includes(x));
+  if (ab.length) add('A∩B', ab, 'chip-a');
+  if (mode===3) {
+    const ac = setA.filter(x=>setC.includes(x));
+    const bc = setB.filter(x=>setC.includes(x));
+    const abc = setA.filter(x=>setB.includes(x)&&setC.includes(x));
+    if (ac.length) add('A∩C', ac, 'chip-c');
+    if (bc.length) add('B∩C', bc, 'chip-b');
+    if (abc.length) add('A∩B∩C', abc, 'chip-u');
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+drawDiagram();
+</script>
+</body>
+</html>
